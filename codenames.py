@@ -87,7 +87,7 @@ class CodenamesBoard:
         # clue, score, curr_target = self.clue_giver.generate_best_clue(game_id, remaining_table_words, remaining_target_words, s.trap_words, previous_clues=previous_clues)
         clue = "test"
         score = 1.0
-        curr_target = remaining_target_words[0]
+        curr_target = [remaining_target_words[0]]
 
         s.current_clue_word = clue
         s.current_clue_number = len(curr_target)
