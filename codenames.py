@@ -85,6 +85,7 @@ class CodenamesBoard:
         remaining_table_words = [word for word in s.table_words if word not in s.correct_guesses and word not in s.incorrect_guesses]
         remaining_target_words = [word for word in s.target_words if word not in s.correct_guesses and word not in s.incorrect_guesses]
         clue, score, curr_target = self.clue_giver.generate_best_clue(game_id, remaining_table_words, remaining_target_words, s.trap_words, previous_clues=previous_clues)
+        
         # clue = "test"
         # score = 1.0
         # curr_target = [remaining_target_words[0]]

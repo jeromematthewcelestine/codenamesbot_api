@@ -34,16 +34,21 @@ class CodenamesClueGiver:
 
     def generate_best_clue(self, game_id, table_words, target_words, trap_words, previous_clues=None):
 
+        clue = None
+
         if len(target_words) == 1:
             curr_target_words = target_words
-            clue, score = self.generate_clue_for_specific_target_words(game_id, table_words, curr_target_words, trap_words, previous_clues)
+            clue_1, score_1 = self.generate_clue_for_specific_target_words(game_id, table_words, curr_target_words, trap_words, previous_clues)
+            if clue_1 is not None:
+                clue = clue_1
+                score = score_1
             best_target_words = curr_target_words
             
         if len(target_words) >= 2:
             best_score_2 = -10000
             for curr_target_words in combinations(target_words, 2):
                 clue_2, score_2 = self.generate_clue_for_specific_target_words(game_id, table_words, curr_target_words, trap_words, previous_clues)
-                if score_2 > best_score_2:
+                if clue_2 is not None and score_2 > best_score_2:
                     best_score_2 = score_2
                     best_clue_2 = clue_2
                     best_target_words_2 = curr_target_words
@@ -59,7 +64,7 @@ class CodenamesClueGiver:
                 combos_3 = sample(combos_3, 20)
             for curr_target_words in combos_3:
                 clue_3, score_3 = self.generate_clue_for_specific_target_words(game_id, table_words, curr_target_words, trap_words, previous_clues)
-                if score_3 > best_score_3:
+                if clue_3 is not None and score_3 > best_score_3:
                     best_score_3 = score_3
                     best_clue_3 = clue_3
                     best_target_words_3 = curr_target_words
@@ -80,10 +85,15 @@ class CodenamesClueGiver:
         #     for clue in clues:
         #         print(clue)
 
-        clue = clues[0][0]
-        score_diff = clues[0][9]
+        if len(clues) == 0:
+            return None, -10000
+        else:
+            clue = clues[0][0]
+            score_diff = clues[0][9]
+
+            return clue, score_diff
         
-        return clue, score_diff
+        
 
     
     def query_database(self, game_id, table_words, target_words, trap_words, previous_clues = None):
