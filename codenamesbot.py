@@ -1,6 +1,3 @@
-import polars as pl
-import numpy as np
-# from nltk.corpus import wordnet as wn
 from itertools import combinations
 from random import sample
 import psycopg2
