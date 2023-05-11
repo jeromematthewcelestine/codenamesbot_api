@@ -1,6 +1,6 @@
 from dataclasses import dataclass, replace
 import random
-# from codenamesbot import CodenamesClueGiver
+from codenamesbot import CodenamesClueGiver
 
 def load_codenames_words():
     with open('data/codenames_words.txt', 'r') as f:
@@ -35,9 +35,9 @@ class CodenamesState:
 
 class CodenamesBoard:
 
-    def __init__(self):
+    def __init__(self, database_uri):
         self.code_words = load_codenames_words()
-        # self.clue_giver = CodenamesClueGiver()
+        self.clue_giver = CodenamesClueGiver(database_uri)
 
     def generate_board(self, n_table_words=16, n_target_words=7, n_trap_words=1):
         self.n_table_words = n_table_words
@@ -84,10 +84,10 @@ class CodenamesBoard:
 
         remaining_table_words = [word for word in s.table_words if word not in s.correct_guesses and word not in s.incorrect_guesses]
         remaining_target_words = [word for word in s.target_words if word not in s.correct_guesses and word not in s.incorrect_guesses]
-        # clue, score, curr_target = self.clue_giver.generate_best_clue(game_id, remaining_table_words, remaining_target_words, s.trap_words, previous_clues=previous_clues)
-        clue = "test"
-        score = 1.0
-        curr_target = [remaining_target_words[0]]
+        clue, score, curr_target = self.clue_giver.generate_best_clue(game_id, remaining_table_words, remaining_target_words, s.trap_words, previous_clues=previous_clues)
+        # clue = "test"
+        # score = 1.0
+        # curr_target = [remaining_target_words[0]]
 
         s.current_clue_word = clue
         s.current_clue_number = len(curr_target)
@@ -170,7 +170,7 @@ if __name__ == "__main__":
     print(game_state.table_words)
     print(game_state.target_words)
 
-    # clue_giver = CodenamesClueGiver()
-    # clue, score, best_target_words = clue_giver.generate_best_clue(game_state.table_words, game_state.target_words, game_state.trap_words)
-    # print(clue, score, best_target_words)
+    clue_giver = CodenamesClueGiver()
+    clue, score, best_target_words = clue_giver.generate_best_clue(game_state.table_words, game_state.target_words, game_state.trap_words)
+    print(clue, score, best_target_words)
 

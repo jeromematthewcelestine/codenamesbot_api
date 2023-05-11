@@ -17,17 +17,18 @@ def load_codenames_words():
     return codenames_words
 
 class CodenamesClueGiver:
-    def __init__(self):
+    def __init__(self, database_uri):
         self.code_words = load_codenames_words()
 
         try:
-            self.conn = psycopg2.connect(
-                database="codewords_app",
-                user="jeromew",
-                password="sclub8",
-                host="localhost",
-                port="5432"
-            )
+            # self.conn = psycopg2.connect(
+            #     database="codewords_app",
+            #     user="jeromew",
+            #     password="sclub8",
+            #     host="localhost",
+            #     port="5432"
+            # )
+            self.conn = psycopg2.connect(database_uri)
         except:
             print("I am unable to connect to the database")
     

@@ -26,7 +26,7 @@ else:
 hashids_instance = hashids.Hashids(salt=hashids_salt,
                                    min_length=8)
 
-board = CodenamesBoard()
+board = CodenamesBoard(DATABASE_URL)
 
 class Game(db.Model):
     id = db.Column(db.Integer, primary_key=True)
