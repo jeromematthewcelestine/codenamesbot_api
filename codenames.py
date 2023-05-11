@@ -85,16 +85,21 @@ class CodenamesBoard:
         remaining_table_words = [word for word in s.table_words if word not in s.correct_guesses and word not in s.incorrect_guesses]
         remaining_target_words = [word for word in s.target_words if word not in s.correct_guesses and word not in s.incorrect_guesses]
         clue, score, curr_target = self.clue_giver.generate_best_clue(game_id, remaining_table_words, remaining_target_words, s.trap_words, previous_clues=previous_clues)
-        
+
+        if clue is not None:
+            s.current_clue_word = clue
+            s.current_clue_number = len(curr_target)
+            s.current_clue_targets = curr_target
+            s.all_clues.append([clue, len(curr_target), curr_target])
+            s.active_player = "guesser"
+        else:
+            return "No clue found.", s
+
         # clue = "test"
         # score = 1.0
         # curr_target = [remaining_target_words[0]]
 
-        s.current_clue_word = clue
-        s.current_clue_number = len(curr_target)
-        s.current_clue_targets = curr_target
-        s.all_clues.append([clue, len(curr_target), curr_target])
-        s.active_player = "guesser"
+        
 
         return "Clue: " + clue + " " + str(len(curr_target)), s
 
