@@ -100,6 +100,7 @@ def to_frontend(state_dict):
     frontend_state['table_words'] = new_table_words
 
     # don't return list of target words or trap words or current clue targets
+    frontend_state['num_target_words'] = len(frontend_state['target_words'])
     frontend_state.pop('target_words')
     frontend_state.pop('trap_words')
     frontend_state.pop('current_clue_targets')
@@ -202,4 +203,4 @@ def game_next():
     return {"response": response, "state": to_frontend(new_state_dict)}
 
 if __name__ == '__main__':
-    app.run(port = 7001, debug=True)
+    app.run(port = 5001, debug=True)

@@ -32,6 +32,8 @@ class CodenamesState:
     active_player: str
     game_result: str
     score: int
+    starting_lives: int
+    current_lives: int
 
 class CodenamesBoard:
 
@@ -45,6 +47,8 @@ class CodenamesBoard:
         table_words = random.sample(self.code_words, k=self.n_table_words)
         target_words = random.sample(table_words, k=self.n_target_words)
         trap_words = random.sample([word for word in table_words if word not in target_words], k=n_trap_words)
+
+        starting_lives = 5
         
         state = CodenamesState(
             is_game_over = False,
@@ -63,7 +67,9 @@ class CodenamesBoard:
             round_num = 1,
             active_player = "giver",
             game_result = None,
-            score = 0
+            score = 0,
+            starting_lives = starting_lives,
+            current_lives = starting_lives,
         )
         return state
     
@@ -155,11 +161,18 @@ class CodenamesBoard:
             response = "Incorrect!"
             s.incorrect_guesses.append(guess)
             s.word_statuses[guess] = 'incorrect'
+            s.current_lives -= 1
+
             # giver's turn
             s.all_guesses.append(s.current_guesses)
             s.current_guesses = []
-            s.active_player = "giver"
-            s.round_num += 1
+
+            if s.current_lives == 0:
+                s.is_game_over = True
+                s.game_result = "no lives"
+            else:
+                s.active_player = "giver"
+                s.round_num += 1
 
         if len(s.correct_guesses) == len(s.target_words):
             response += " All target words guessed!"

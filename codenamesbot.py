@@ -38,7 +38,7 @@ class CodenamesClueGiver:
 
         if len(target_words) == 1:
             curr_target_words = target_words
-            clue_1, score_1 = self.generate_clue_for_specific_target_words(game_id, table_words, curr_target_words, trap_words, previous_clues)
+            clue_1, score_1, _ = self.generate_clue_for_specific_target_words(game_id, table_words, curr_target_words, trap_words, previous_clues)
             if clue_1 is not None:
                 clue = clue_1
                 score = score_1
@@ -47,7 +47,7 @@ class CodenamesClueGiver:
         if len(target_words) >= 2:
             best_score_2 = -10000
             for curr_target_words in combinations(target_words, 2):
-                clue_2, score_2 = self.generate_clue_for_specific_target_words(game_id, table_words, curr_target_words, trap_words, previous_clues)
+                clue_2, score_2, _ = self.generate_clue_for_specific_target_words(game_id, table_words, curr_target_words, trap_words, previous_clues)
                 if clue_2 is not None and score_2 > best_score_2:
                     best_score_2 = score_2
                     best_clue_2 = clue_2
@@ -63,7 +63,7 @@ class CodenamesClueGiver:
             if len(combos_3) > 20:
                 combos_3 = sample(combos_3, 20)
             for curr_target_words in combos_3:
-                clue_3, score_3 = self.generate_clue_for_specific_target_words(game_id, table_words, curr_target_words, trap_words, previous_clues)
+                clue_3, score_3, _ = self.generate_clue_for_specific_target_words(game_id, table_words, curr_target_words, trap_words, previous_clues)
                 if clue_3 is not None and score_3 > best_score_3:
                     best_score_3 = score_3
                     best_clue_3 = clue_3
@@ -86,12 +86,12 @@ class CodenamesClueGiver:
         #         print(clue)
 
         if len(clues) == 0:
-            return None, -10000
+            return None, -10000, None
         else:
             clue = clues[0][0]
             score_diff = clues[0][9]
 
-            return clue, score_diff
+            return clue, score_diff, clues
         
         
 
@@ -107,6 +107,10 @@ class CodenamesClueGiver:
 
         try:
             # Connect to the PostgreSQL database
+            like_conditions = ""
+            for table_word in table_words:
+                like_condition = f"\n AND word2 != '{table_word}' AND word2 NOT LIKE '%{table_word}%' AND '{table_word}' NOT LIKE CONCAT('%', word2, '%') "
+                like_conditions += like_condition
                 
             # Open a cursor to perform database operations
             cur = self.conn.cursor()
@@ -114,10 +118,12 @@ class CodenamesClueGiver:
             # Execute the SQL query with the word list as a parameter
             temp_table_query = f"""
                 CREATE TEMPORARY TABLE IF NOT EXISTS temp_${game_id} AS (
-                    SELECT * FROM pmi_v0_2 WHERE word1 in %s 
+                    SELECT * FROM pmi_v0_3 WHERE word1 in {tuple(table_words)}
+                    {like_conditions}
                 );
             """
-            cur.execute(temp_table_query, (tuple(table_words), ))
+            # print(temp_table_query)
+            cur.execute(temp_table_query)
 
             query = f"""
                 WITH t1 AS (
@@ -129,7 +135,7 @@ class CodenamesClueGiver:
                         min(COALESCE(joint_value, 0)) as min_joint_value,
                         max(COALESCE(joint_value, 0)) as max_joint_value
                     FROM temp_${game_id}
-                    {previous_clues_param}
+                        {previous_clues_param}
                     GROUP BY
                         word2, is_target
                 ), t2 AS (
@@ -143,7 +149,6 @@ class CodenamesClueGiver:
                         COALESCE(MAX(CASE WHEN is_target = TRUE THEN max_joint_value ELSE null END), 0) AS max_jv_target,
                         COALESCE(MAX(CASE WHEN is_target = FALSE THEN min_joint_value ELSE null END), 0) AS min_jv_non,
                         COALESCE(MAX(CASE WHEN is_target = FALSE THEN max_joint_value ELSE null END), 0) AS max_jv_non
-                        
                     FROM t1
                     GROUP BY word2
                 )
@@ -152,7 +157,7 @@ class CodenamesClueGiver:
                     min_pmi_target - 0.8 * max_pmi_non AS pmi_diff 
                 FROM
                     t2
-                WHERE
+                WHERE 
                     min_jv_target > 10
                 ORDER BY
                     pmi_diff DESC
@@ -163,6 +168,9 @@ class CodenamesClueGiver:
 
             # Fetch all rows and print them
             rows = cur.fetchall()
+
+            # for row in rows:
+                # print(row)
             
             return rows
 
