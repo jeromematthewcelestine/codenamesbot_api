@@ -139,20 +139,28 @@ def game_state():
 
 @app.route('/game/action', methods=['POST'])
 def game_action():
-    print(f"/game/action")
+    print(f"/game/action!!")
+    print(f"request.json")
+
+    print(f"request", request)
+
+    if not request.data:
+        return "No request data", 400
+
     if 'game_id' not in request.json:
         print("No game id")
         return "No game_id provided", 400
     else:
+        print("game_id", request.json['game_id'])
         print("request.json", request.json)
         
     encoded_game_id = request.json['game_id']
     game_id = hashids_instance.decode(encoded_game_id)[0]
-    
 
     # check if valid action type
     action_type = request.json['action_type']
-    if action_type != "guess" and action_type != "pass":
+    print(f'action_type {action_type}')
+    if action_type != "guess" and action_type != "pass" and action_type != "resign":
         return "Invalid action type", 400
 
     # get game state from db
@@ -165,9 +173,11 @@ def game_action():
         guess = request.json['guess']
         write_guess_to_db(game_id, game_state, guess)
         response, new_state = board.do_guess(game_state, guess)
-    else: # action_type == "pass"
+    elif action_type == "pass":
         write_guess_to_db(game_id, game_state, "")
         response, new_state = board.do_pass(game_state)
+    elif action_type == "resign":
+        response, new_state = board.do_resign(game_state)
 
     new_state_dict = asdict(new_state)
 

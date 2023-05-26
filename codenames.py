@@ -105,8 +105,6 @@ class CodenamesBoard:
         # score = 1.0
         # curr_target = [remaining_target_words[0]]
 
-        
-
         return "Clue: " + clue + " " + str(len(curr_target)), s
 
     def do_pass(self, state):
@@ -126,7 +124,6 @@ class CodenamesBoard:
         s.active_player = "giver"
         s.round_num += 1
         return "Pass!", s
-    
         
     def do_guess(self, state, guess):
         s = state
@@ -180,6 +177,23 @@ class CodenamesBoard:
             s.game_result = "win"
 
         return response, s
+    
+    def do_resign(self, state):
+        s = state
+
+        if s.is_game_over:
+            return "Game is over!", s
+
+        if s.active_player == "giver":
+            return "It's the clue-giver's turn!", s
+        
+        response = "You have resigned"
+        
+        s.is_game_over = True
+        s.game_result = "resigned"
+
+        return response, s
+
     
 if __name__ == "__main__":
     board = CodenamesBoard()
