@@ -134,8 +134,12 @@ def game_state():
     print("encoded_game_id", encoded_game_id)
     game_id = hashids_instance.decode(encoded_game_id)[0]
     game = Game.query.get(game_id)
-    game_state = json.loads(game.state)
-    return to_frontend(game_state)
+    if game is None:
+        print("Game not found")
+        return "Game not found", 404
+    else:
+        game_state = json.loads(game.state)
+        return to_frontend(game_state)
 
 @app.route('/game/action', methods=['POST'])
 def game_action():
