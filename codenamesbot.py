@@ -95,7 +95,6 @@ class CodenamesClueGiver:
         
         
 
-    
     def query_database(self, game_id, table_words, target_words, trap_words, previous_clues = None):
         # print('querying database...')
 
@@ -106,7 +105,6 @@ class CodenamesClueGiver:
             previous_clues_param = ''
 
         try:
-            # Connect to the PostgreSQL database
             like_conditions = ""
             for table_word in table_words:
                 like_condition = f"\n AND word2 != '{table_word}' AND word2 NOT LIKE '%{table_word}%' AND '{table_word}' NOT LIKE CONCAT('%', word2, '%') "
@@ -176,8 +174,3 @@ class CodenamesClueGiver:
 
         except Exception as e:
             print("Error executing SQL query: ", e)
-
-                                    # COALESCE(MAX(CASE WHEN is_target = FALSE AND is_trap = TRUE THEN min_pmi ELSE null END), 0) AS min_pmi_trap,
-                        # COALESCE(MAX(CASE WHEN is_target = FALSE AND is_trap = TRUE THEN max_pmi ELSE null END), 0) AS max_pmi_trap,
-                        # COALESCE(MAX(CASE WHEN is_target = FALSE AND is_trap = TRUE THEN min_joint_value ELSE null END), 0) AS min_jv_trap,
-                        # COALESCE(MAX(CASE WHEN is_target = FALSE AND is_trap = TRUE THEN max_joint_value ELSE null END), 0) AS max_jv_trap
