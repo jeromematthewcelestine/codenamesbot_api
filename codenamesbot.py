@@ -28,6 +28,8 @@ class CodenamesClueGiver:
             self.conn = psycopg2.connect(database_uri)
         except:
             print("I am unable to connect to the database")
+
+        self.pmi_table_name = 'pmi_v0_3'
     
     def __del__(self):
         self.conn.close()
@@ -37,12 +39,20 @@ class CodenamesClueGiver:
         clue = None
 
         if len(target_words) == 1:
+        # best_score_1 = -10000
+        # for curr_target_words in combinations(target_words, 1):
             curr_target_words = target_words
-            clue_1, score_1, _ = self.generate_clue_for_specific_target_words(game_id, table_words, curr_target_words, trap_words, previous_clues)
-            if clue_1 is not None:
-                clue = clue_1
-                score = score_1
-            best_target_words = curr_target_words
+            # clue_1, score_1, _ = self.generate_clue_for_specific_target_words(game_id, table_words, curr_target_words, trap_words, previous_clues)
+            clue_1, score_1, _ = self.get_best_single_word_clue(game_id, table_words, curr_target_words[0], trap_words, previous_clues)
+            # if clue_1 is not None:
+            if clue_1 is not None and score_1 > best_score_1:
+                best_clue_1 = clue_1
+                best_score_1 = score_1
+                best_target_words_1 = curr_target_words
+
+                clue = best_clue_1
+                score = best_score_1
+                best_target_words = best_target_words_1
             
         if len(target_words) >= 2:
             best_score_2 = -10000
@@ -93,35 +103,99 @@ class CodenamesClueGiver:
 
             return clue, score_diff, clues
         
-        
+    def create_temp_table(self, game_id, table_words):
 
+        like_conditions = ""
+        for table_word in table_words:
+            like_condition = f"\n AND word2 != '{table_word}' AND word2 NOT LIKE '%{table_word}%' AND '{table_word}' NOT LIKE CONCAT('%', word2, '%') "
+            like_conditions += like_condition
+                
+        # Open a cursor to perform database operations
+        cur = self.conn.cursor()
+
+        # Execute the SQL query with the word list as a parameter
+        temp_table_query = f"""
+            CREATE TEMPORARY TABLE IF NOT EXISTS temp_${game_id} AS (
+                SELECT * FROM pmi_v0_3 WHERE word1 in {tuple(table_words)}
+                {like_conditions}
+            );
+        """
+        # print(temp_table_query)
+        cur.execute(temp_table_query)
+    
+    def get_best_single_word_clue(self, game_id, table_words, target_word, trap_words, previous_clues = None):
+
+        cur = self.conn.cursor()
+
+        self.create_temp_table(game_id, table_words)
+
+        if previous_clues:
+            placeholders = ', '.join(f"'{clue}'" for clue in previous_clues)
+            previous_clues_param = 'WHERE word2 NOT IN (%s)' % placeholders
+        else:
+            previous_clues_param = ''
+
+        query = f"""
+            WITH t1 AS (
+                SELECT
+                    word2,
+                    word1 in %s as is_target,
+                    max(COALESCE(pmi, 0)) as max_pmi,
+                    min(COALESCE(pmi, 0)) as min_pmi,
+                    min(COALESCE(joint_value, 0)) as min_joint_value,
+                    max(COALESCE(joint_value, 0)) as max_joint_value
+                FROM temp_${game_id}
+                {previous_clues_param}
+                GROUP BY
+                    word2, is_target
+            ), t2 AS (
+                SELECT
+                    word2,
+                    COALESCE(MAX(CASE WHEN is_target = TRUE THEN min_pmi ELSE null END), 0) AS min_pmi_target,
+                    COALESCE(MAX(CASE WHEN is_target = TRUE THEN max_pmi ELSE null END), 0) AS max_pmi_target,
+                    COALESCE(MAX(CASE WHEN is_target = FALSE THEN min_pmi ELSE null END), 0) AS min_pmi_non,
+                    COALESCE(MAX(CASE WHEN is_target = FALSE THEN max_pmi ELSE null END), 0) AS max_pmi_non,
+                    COALESCE(MAX(CASE WHEN is_target = TRUE THEN min_joint_value ELSE null END), 0) AS min_jv_target,
+                    COALESCE(MAX(CASE WHEN is_target = TRUE THEN max_joint_value ELSE null END), 0) AS max_jv_target,
+                    COALESCE(MAX(CASE WHEN is_target = FALSE THEN min_joint_value ELSE null END), 0) AS min_jv_non,
+                    COALESCE(MAX(CASE WHEN is_target = FALSE THEN max_joint_value ELSE null END), 0) AS max_jv_non
+                FROM t1
+                GROUP BY word2
+            )
+            SELECT
+                *,
+                min_pmi_target - 0.1 * max_pmi_non AS pmi_diff 
+            FROM
+                t2
+            WHERE 
+                min_jv_target > 2 * max_jv_non
+            ORDER BY
+                min_jv_target DESC
+            LIMIT 1;
+        """
+
+        cur.execute(query, ((target_word,), ))
+
+        rows = cur.fetchall()
+
+        clue = rows[0][0]
+        score_diff = rows[0][-1]
+
+        return clue, score_diff, rows
+        
     def query_database(self, game_id, table_words, target_words, trap_words, previous_clues = None):
         # print('querying database...')
 
-        if previous_clues :
-            placeholders= ', '.join(f"'{clue}'" for clue in previous_clues)
+        if previous_clues:
+            placeholders = ', '.join(f"'{clue}'" for clue in previous_clues)
             previous_clues_param = 'WHERE word2 NOT IN (%s)' % placeholders
         else:
             previous_clues_param = ''
 
         try:
-            like_conditions = ""
-            for table_word in table_words:
-                like_condition = f"\n AND word2 != '{table_word}' AND word2 NOT LIKE '%{table_word}%' AND '{table_word}' NOT LIKE CONCAT('%', word2, '%') "
-                like_conditions += like_condition
-                
-            # Open a cursor to perform database operations
-            cur = self.conn.cursor()
+            self.create_temp_table(game_id, table_words)
 
-            # Execute the SQL query with the word list as a parameter
-            temp_table_query = f"""
-                CREATE TEMPORARY TABLE IF NOT EXISTS temp_${game_id} AS (
-                    SELECT * FROM pmi_v0_3 WHERE word1 in {tuple(table_words)}
-                    {like_conditions}
-                );
-            """
-            # print(temp_table_query)
-            cur.execute(temp_table_query)
+            cur = self.conn.cursor()
 
             query = f"""
                 WITH t1 AS (
