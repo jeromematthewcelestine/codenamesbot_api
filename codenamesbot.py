@@ -18,13 +18,6 @@ class CodenamesClueGiver:
         self.code_words = load_codenames_words()
 
         try:
-            # self.conn = psycopg2.connect(
-            #     database="codewords_app",
-            #     user="jeromew",
-            #     password="sclub8",
-            #     host="localhost",
-            #     port="5432"
-            # )
             self.conn = psycopg2.connect(database_uri)
         except:
             print("I am unable to connect to the database")
@@ -83,10 +76,6 @@ class CodenamesClueGiver:
     def generate_clue_for_specific_target_words(self, game_id, table_words, target_words, trap_words, previous_clues = None):
         clues = self.query_database(game_id, table_words, target_words, trap_words, previous_clues)
 
-        # if len(target_words) == 1:
-        #     print(f'Generating clue for {target_words[0]}')
-        #     for clue in clues:
-        #         print(clue)
 
         if len(clues) == 0:
             return None, -10000, None
