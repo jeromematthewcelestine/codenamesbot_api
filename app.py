@@ -36,10 +36,10 @@ hashids_instance = hashids.Hashids(salt=hashids_salt,
 def require_appkey(view_function):
     @wraps(view_function)
     def decorated_function(*args, **kwargs):
-        if request.args.get('key') and request.args.get('key') == 'jerome':
-            return view_function(*args, **kwargs)
-        else:
+        if not request.headers.get('x-api-key') or not request.headers.get('x-api-key') == api_key:
             abort(401)
+        else:
+            return view_function(*args, **kwargs)
     return decorated_function
 
 board = CodenamesBoard(DATABASE_URL)
@@ -124,17 +124,14 @@ def to_frontend(state_dict):
     return frontend_state
 
 @app.route('/games')
+@require_appkey
 def list_games():
-    if not request.headers.get('x-api-key') or not request.headers.get('x-api-key') == api_key:
-        abort(401)
     games = Game.query.all()
     return jsonify([{ 'id': hashids_instance.encode(game.id), 'username': game.username, 'status': game.status } for game in games])
 
 @app.route('/new-game', methods=['POST'])
+@require_appkey
 def new_game():
-    if not request.headers.get('x-api-key') or not request.headers.get('x-api-key') == api_key:
-        abort(401)
-
     game_state = board.generate_board(n_table_words = 20, n_target_words = 8, n_trap_words = 2)
     print(game_state)
     game = Game(state=json.dumps(asdict(game_state)), username='jeromew', status='active')
@@ -144,10 +141,8 @@ def new_game():
     return {'game_id': encoded_game_id}
 
 @app.route('/game', methods=['POST'])
+@require_appkey
 def game_state():
-    if not request.headers.get('x-api-key') or not request.headers.get('x-api-key') == api_key:
-        abort(401)
-
     print(f"/game")
     if 'game_id' not in request.json:
         print("No game id")
@@ -166,10 +161,8 @@ def game_state():
         return to_frontend(game_state)
 
 @app.route('/game/action', methods=['POST'])
+@require_appkey
 def game_action():
-    if not request.headers.get('x-api-key') or not request.headers.get('x-api-key') == api_key:
-        abort(401)
-
     print(f"/game/action!!")
     print(f"request.json")
 
@@ -218,10 +211,8 @@ def game_action():
     return {"response": response, "state": to_frontend(new_state_dict)}
 
 @app.route('/game/next', methods=['POST'])
-def game_next():
-    if not request.headers.get('x-api-key') or not request.headers.get('x-api-key') == api_key:
-        abort(401)
-        
+@require_appkey
+def game_next():        
     print(f"/game/next")
     if 'game_id' not in request.json:
         return "No game_id provided", 400
