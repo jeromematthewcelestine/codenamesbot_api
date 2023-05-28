@@ -45,14 +45,11 @@ class CodenamesClueGiver:
             # clue_1, score_1, _ = self.generate_clue_for_specific_target_words(game_id, table_words, curr_target_words, trap_words, previous_clues)
             clue_1, score_1, _ = self.get_best_single_word_clue(game_id, table_words, curr_target_words[0], trap_words, previous_clues)
             # if clue_1 is not None:
-            if clue_1 is not None and score_1 > best_score_1:
-                best_clue_1 = clue_1
-                best_score_1 = score_1
-                best_target_words_1 = curr_target_words
+            # if clue_1 is not None and score_1 > best_score_1:
 
-                clue = best_clue_1
-                score = best_score_1
-                best_target_words = best_target_words_1
+            clue = clue_1
+            score = score_1
+            best_target_words = target_words
             
         if len(target_words) >= 2:
             best_score_2 = -10000

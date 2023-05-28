@@ -1,10 +1,11 @@
-from flask import Flask, render_template, redirect, url_for, jsonify, request
+from flask import Flask, render_template, redirect, url_for, jsonify, request, abort
 from flask_sqlalchemy import SQLAlchemy
 import os
 import json
 from codenames import CodenamesBoard, CodenamesState
 from dataclasses import dataclass, asdict
 import hashids
+from functools import wraps
 
 if "DATABASE_URL" in os.environ:
     DATABASE_URL = os.environ['DATABASE_URL']
@@ -23,8 +24,23 @@ else:
     import local_config
     hashids_salt = local_config.HASHIDS_SALT
 
+if 'API_KEY' in os.environ:
+    api_key = os.environ['API_KEY']
+else:
+    import local_config
+    api_key = local_config.API_KEY
+
 hashids_instance = hashids.Hashids(salt=hashids_salt,
                                    min_length=8)
+
+def require_appkey(view_function):
+    @wraps(view_function)
+    def decorated_function(*args, **kwargs):
+        if request.args.get('key') and request.args.get('key') == 'jerome':
+            return view_function(*args, **kwargs)
+        else:
+            abort(401)
+    return decorated_function
 
 board = CodenamesBoard(DATABASE_URL)
 
@@ -108,12 +124,17 @@ def to_frontend(state_dict):
     return frontend_state
 
 @app.route('/games')
-def list_games2():
+def list_games():
+    if not request.headers.get('x-api-key') or not request.headers.get('x-api-key') == api_key:
+        abort(401)
     games = Game.query.all()
     return jsonify([{ 'id': hashids_instance.encode(game.id), 'username': game.username, 'status': game.status } for game in games])
 
 @app.route('/new-game', methods=['POST'])
 def new_game():
+    if not request.headers.get('x-api-key') or not request.headers.get('x-api-key') == api_key:
+        abort(401)
+
     game_state = board.generate_board(n_table_words = 20, n_target_words = 8, n_trap_words = 2)
     print(game_state)
     game = Game(state=json.dumps(asdict(game_state)), username='jeromew', status='active')
@@ -124,6 +145,9 @@ def new_game():
 
 @app.route('/game', methods=['POST'])
 def game_state():
+    if not request.headers.get('x-api-key') or not request.headers.get('x-api-key') == api_key:
+        abort(401)
+
     print(f"/game")
     if 'game_id' not in request.json:
         print("No game id")
@@ -143,6 +167,9 @@ def game_state():
 
 @app.route('/game/action', methods=['POST'])
 def game_action():
+    if not request.headers.get('x-api-key') or not request.headers.get('x-api-key') == api_key:
+        abort(401)
+
     print(f"/game/action!!")
     print(f"request.json")
 
@@ -192,6 +219,9 @@ def game_action():
 
 @app.route('/game/next', methods=['POST'])
 def game_next():
+    if not request.headers.get('x-api-key') or not request.headers.get('x-api-key') == api_key:
+        abort(401)
+        
     print(f"/game/next")
     if 'game_id' not in request.json:
         return "No game_id provided", 400
